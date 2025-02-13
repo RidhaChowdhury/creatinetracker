@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -9,8 +8,8 @@ interface LogEntry {
 }
 
 const DAY_LETTERS = ["S", "M", "T", "W", "R", "F", "S"];
-const TOTAL_WEEKS = 12;
-const COMPACT_WEEKS = 4;
+const TOTAL_WEEKS = 24;
+const COMPACT_WEEKS = 8;
 
 function getDayNumber(dateStr: string): number {
   const d = new Date(dateStr + "T00:00:00");
@@ -85,7 +84,11 @@ function buildWeeksArray(log: LogEntry[]): LogEntry[][] {
   return weeks;
 }
 
-export default function CreatineLog() {
+export default function CreatineLog({
+  onExpandedChange,
+}: {
+  onExpandedChange?: (expanded: boolean) => void;
+}) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [latestDate] = useState(new Date().toISOString().slice(0, 10));
   const [log, setLog] = useState(generateLog());
@@ -95,58 +98,62 @@ export default function CreatineLog() {
     ? allWeeks
     : allWeeks.slice(allWeeks.length - COMPACT_WEEKS);
 
-  const toggleLog = (index: number) => {
+  function toggleLog(index: number) {
     const day = log[index];
     if (day.date > latestDate) return;
     const newLog = [...log];
     newLog[index].logged = !newLog[index].logged;
     setLog(newLog);
-  };
+  }
+
+  function toggleExpand() {
+    const nextVal = !isExpanded;
+    setIsExpanded(nextVal);
+    onExpandedChange?.(nextVal);
+  }
+
+  // Shared grid content
+  const grid = (
+    <LogGrid
+      weeks={displayedWeeks}
+      saturations={saturations}
+      latestDate={latestDate}
+      log={log}
+      toggleLog={toggleLog}
+    />
+  );
+
+  // Shared button
+  const button = (
+    <button
+      onClick={toggleExpand}
+      className="px-4 py-2 border rounded bg-blue-50 hover:bg-blue-100"
+    >
+      {isExpanded ? "Collapse to Last 4 Weeks" : "Expand Full 12 Weeks"}
+    </button>
+  );
+
+  if (isExpanded) {
+    return (
+      <div className="h-screen flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-auto">
+          <ScrollArea className="h-full w-full">
+            {grid}
+            {/* Extra bottom padding to ensure grid content is not hidden */}
+            {/* <div className="pb-20" /> */}
+          </ScrollArea>
+        </div>
+        <div className="sticky bottom-0 left-0 w-full bg-white p-2 flex justify-center">
+          {button}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className={`relative ${isExpanded ? "h-screen" : ""} flex flex-col`}>
-      <div className={`flex-1 overflow-auto p-4 ${isExpanded ? "" : ""}`}>
-        {isExpanded ? (
-          <ScrollArea className="h-full w-full border rounded">
-            <LogGrid
-              weeks={displayedWeeks}
-              saturations={saturations}
-              latestDate={latestDate}
-              log={log}
-              toggleLog={toggleLog}
-            />
-          </ScrollArea>
-        ) : (
-          <div className="border rounded">
-            <LogGrid
-              weeks={displayedWeeks}
-              saturations={saturations}
-              latestDate={latestDate}
-              log={log}
-              toggleLog={toggleLog}
-            />
-          </div>
-        )}
-      </div>
-      {isExpanded ? (
-        <div className="absolute bottom-0 left-0 w-full p-2 flex justify-center bg-white">
-          <button
-            onClick={() => setIsExpanded(false)}
-            className="px-4 py-2 border rounded bg-blue-50 hover:bg-blue-100"
-          >
-            Collapse
-          </button>
-        </div>
-      ) : (
-        <div className="p-2 flex justify-center">
-          <button
-            onClick={() => setIsExpanded(true)}
-            className="px-4 py-2 border rounded bg-blue-50 hover:bg-blue-100"
-          >
-            Expand
-          </button>
-        </div>
-      )}
+    <div className="p-4">
+      <div className="border rounded">{grid}</div>
+      <div className="p-2 text-center">{button}</div>
     </div>
   );
 }
@@ -184,15 +191,15 @@ function LogGrid({
                     ? `${day.date} (No data)`
                     : `${day.date} - Saturation: ${(sat * 100).toFixed(0)}%`
                 }
-                className={`${baseClasses} ${
+                className={
                   isAfterLatest
-                    ? "bg-gray-100 opacity-25 cursor-not-allowed border-transparent"
+                    ? `bg-gray-100 opacity-25 cursor-not-allowed border-transparent ${baseClasses}`
                     : `${getColorClass(sat)} ${
                         log[globalIndex].logged
                           ? "border-blue-400"
                           : "border-transparent"
-                      } cursor-pointer`
-                }`}
+                      } cursor-pointer ${baseClasses}`
+                }
               >
                 <span className="absolute top-0 right-0 text-[5px] p-0.5 pointer-events-none">
                   {getDayNumber(day.date)}
