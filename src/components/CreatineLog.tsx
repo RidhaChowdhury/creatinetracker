@@ -9,7 +9,7 @@ interface LogEntry {
 
 const DAY_LETTERS = ["S", "M", "T", "W", "R", "F", "S"];
 const TOTAL_WEEKS = 24;
-const COMPACT_WEEKS = 8;
+const COMPACT_WEEKS = 4;
 
 function getDayNumber(dateStr: string): number {
   const d = new Date(dateStr + "T00:00:00");
